@@ -1,3 +1,4 @@
+name 'radar'
 maintainer       "Radar Parlamentar"
 maintainer_email "radarparlamentar@polignu.org"
 license          "GPL v3"

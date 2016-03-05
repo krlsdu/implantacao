@@ -74,7 +74,7 @@ end
 # Instala e configura Postgresql como a base de dados "radar"
 #
 
-include_recipe "database::default"
+include_recipe "database::postgresql"
 
 template "#{home}/.pgpass" do
   mode '0600'

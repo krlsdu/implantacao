@@ -24,5 +24,5 @@ potentially_at_compile_time do
   package 'build-essential'
   package 'flex'
   package 'gettext'
-  package 'ncurses-dev'
+  package 'libncurses5-dev'
 end

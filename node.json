@@ -3,19 +3,20 @@
       "password":{
          "postgres":"123mudar"
       }
-   },
-   "radar":{
-      "linux_user":"radar",
-      "database_user_password":"123mudar",
-      "server_password":"123456"
-   },
-   "sonarqube" : {
-      "version":"4.4.1",
-      "user":"sonar",
-      "password":"sonar",
-      "port":"9300"
-   },
-   "run_list":[
-      "recipe[radar::default]"
-   ]
+   }
+   /* , */
+   /* "radar":{ */
+   /*    "linux_user":"radar", */
+   /*    "database_user_password":"123mudar", */
+   /*    "server_password":"123456" */
+   /* }, */
+   /* "sonarqube" : { */
+   /*    "version":"4.4.1", */
+   /*    "user":"sonar", */
+   /*    "password":"sonar", */
+   /*    "port":"9300" */
+   /* }, */
+   /* "run_list":[ */
+   /*    "recipe[radar::default]" */
+   /* ] */
 }

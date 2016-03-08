@@ -2,20 +2,13 @@
 # Author: Leonardo Leite (2014)
 # Receita de instalação do Radar Parlamentar
 
-user 'radar' do
-  supports :manage_home => true
-  comment 'User Radar'
-  home '/home/radar'
-  shell '/bin/bash'
-  password 'radar'
-  system true
-end
 
-# user = node['radar']['linux_user']
-home = "/home/radar"
+
+user = node['radar']['user']
+home = node['radar']['home_user']
 radar_folder = "#{home}/radar"
-repo_folder = "#{home}/radar/repo"
-venv_folder = "#{home}/radar/venv_radar"
+repo_folder = "#{home}/repo"
+venv_folder = "#{home}/venv_radar"
 cache_folder = "/tmp/django_cache"
 log_folder = "/var/log/radar"
 log_file = "#{log_folder}/radar.log"
@@ -28,6 +21,9 @@ dump_file = "#{repo_folder}/radar_parlamentar/static/db-dump/radar.sql"
 #
 # Instalando pacotes
 #
+package "libshadow-ruby1.8" do
+  action :install
+end
 
 package "python-pip" do
   action :install
@@ -69,6 +65,17 @@ package "curl" do
   action :install
 end
 
+#
+# Cria usuario radar
+#
+user 'radar' do
+  supports :manage_home => true
+  comment 'User Radar'
+  home '/home/radar'
+  shell '/bin/bash'
+  password '$1$mkzBgh6.$uMYniXncsQvGI85us6PH/1'
+  system true
+end
 
 #
 # Instala e configura Postgresql como a base de dados "radar"
@@ -82,7 +89,7 @@ template "#{home}/.pgpass" do
   group user
   source "pgpass.erb"
   variables({
-    :senha => node[:postgresql][:password][:postgres]
+    :senha => node['radar']['database_password']
   })
 end
 
@@ -146,317 +153,317 @@ end
 # Variáveis de ambiente
 #
 
-# template "#{home}/.profile" do
-#   mode '0440'
-#   owner user
-#   group user
-#   source "profile.erb"
-#   variables({
-#     :django_home => "#{repo_folder}/radar_parlamentar",
-#     :script_folder => script_folder,
-#     :venv_folder => venv_folder
-#   })
-# end
-#
-# #
-# # Código e configuração do Radar
-# #
-#
-# directory "#{radar_folder}" do
-#   owner user
-#   group user
-#   mode '0775'
-#   action :create
-# end
-#
-# python_virtualenv "#{venv_folder}" do
-#   owner user
-#   group user
-#   action :create
-#   options "--setuptools"
-# end
-#
-# git "#{repo_folder}" do
-#   repository "https://github.com/radar-parlamentar/radar.git"
-#   reference "master"
-#   user user
-#   group user
-#   action :sync
-# end
-#
-# python_pip "" do
-#   virtualenv "#{venv_folder}"
-#   options "-r #{repo_folder}/radar_parlamentar/requirements.txt"
-# end
-#
-# directory "#{cache_folder}" do
-#   owner user
-#   group user
-#   mode '666'
-#   action :create
-# end
-#
-# template "#{repo_folder}/radar_parlamentar/settings/production.py" do
-#   mode '0440'
-#   owner user
-#   group user
-#   source "production.py.erb"
-#   variables({
-#     :dbname => 'radar',
-#     :dbuser => 'radar',
-#     :dbpassword => node['postgresql']['password']['postgres'],
-#     :cache_folder => cache_folder,
-#     :log_file => log_file
-#   })
-# end
-#
-# directory log_folder do
-#   owner user
-#   group user
-#   mode '0755'
-#   action :create
-# end
-#
-# file log_file do
-#   owner user
-#   group user
-#   mode '0755'
-#   action :create
-# end
-#
-# execute "syncdb" do
-#   command "#{venv_folder}/bin/python manage.py syncdb --noinput"
-#   environment ({"DJANGO_SETTINGS_MODULE" => "settings.production"})
-#   cwd "#{repo_folder}/radar_parlamentar"
-#   user user
-#   group user
-#   action :run
-# end
-#
-# execute "migrate" do
-#   command "#{venv_folder}/bin/python manage.py migrate"
-#   environment ({"DJANGO_SETTINGS_MODULE" => "settings.production"})
-#   cwd "#{repo_folder}/radar_parlamentar"
-#   user user
-#   group user
-#   action :run
-# end
-#
-# #
-# # Uwsgi
-# #
-#
-# template "#{radar_folder}/radar_uwsgi.ini" do
-#   mode '0440'
-#   owner user
-#   group user
-#   source "radar_uwsgi.ini.erb"
-#   variables({
-#     :user => user
-#   })
-# end
-#
-# template "#{radar_folder}/uwsgi_params" do
-#   mode '0440'
-#   owner user
-#   group user
-#   source "uwsgi_params.erb"
-# end
-#
-# python_pip "uwsgi" do
-# end
-#
-# directory uwsgi_log_folder do
-#   owner user
-#   group user
-#   mode '0755'
-#   action :create
-# end
-#
-# template "/etc/init/uwsgi.conf" do
-#   mode '777'
-#   owner 'root'
-#   group 'root'
-#   source "uwsgi.conf.erb"
-#   variables({
-#     :uwsgi_log_file => uwsgi_log_file,
-#     :radar_folder => radar_folder
-#   })
-# end
-#
-# service "uwsgi" do
-#   provider Chef::Provider::Service::Upstart
-#   action :restart
-# end
-#
-# #
-# # Nginx
-# #
-#
-# package "nginx" do
-#   action :install
-# end
-#
-# template "#{radar_folder}/radar_nginx.conf" do
-#   mode '0440'
-#   owner user
-#   group user
-#   source "radar_nginx.conf.erb"
-#   variables({
-#     :user => user,
-#     :server_name => "localhost"
-#   })
-# end
-#
-# link "/etc/nginx/sites-enabled/radar_nginx.conf" do
-#   to "#{home}/radar/radar_nginx.conf"
-# end
-#
-# file "/etc/nginx/sites-enabled/default" do
-#   action :delete
-# end
-#
-# service "nginx" do
-#   action :restart
-# end
-#
-# #
-# # Celery
-# #
-#
-# package "rabbitmq-server" do
-#   action :install
-# end
-#
-# template "/etc/default/celeryd" do
-#   mode '0444'
-#   owner 'root'
-#   group 'root'
-#   source "celeryd.conf.erb"
-#   variables({
-#     :repo_folder => repo_folder,
-#     :venv_folder => venv_folder,
-#     :user => user
-#   })
-# end
-#
-# template "/etc/init.d/celeryd" do
-#   mode '0777'
-#   owner 'root'
-#   group 'root'
-#   source "celeryd.erb"
-# end
-#
-# service "celeryd" do
-#   action :start
-# end
-#
-# #
-# # Elastic Search
-# #
-#
-# include_recipe "java"
-#
-# package "unzip" do
-#   action :install
-# end
-#
-# remote_file "#{radar_folder}/elasticsearch-1.5.1.zip" do
-#   source "http://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-1.5.1.zip"
-#   action :create_if_missing
-#   user user
-#   group user
-# end
-#
-# execute "unzip_elastic_search" do
-#   command "unzip elasticsearch-1.5.1.zip"
-#   cwd "#{radar_folder}"
-#   user user
-#   group user
-#   action :run
-# end
-#
-# service "elasticsearch" do
-#   start_command "./#{radar_folder}/elasticsearch-1.5.1/bin/elasticsearch -d"
-#   action :start
-# end
-#
-# # Criar usuario para administrativo do Django (usado na importação dos dados via requisição web)
-#
-# template "#{repo_folder}/radar_parlamentar/create_user.py" do
-#   mode '777'
-#   owner user
-#   group user
-#   source "create_user.py.erb"
-#   variables({
-#     :user => 'radar',
-#     :password => node['radar']['database_user_password']
-#   })
-# end
-#
-# execute "create_user" do
-#   command "#{venv_folder}/bin/python create_user.py"
-#   environment ({"DJANGO_SETTINGS_MODULE" => "settings.production"})
-#   cwd "#{repo_folder}/radar_parlamentar/"
-#   user user
-#   group user
-#   action :run
-# end
-#
-# file "#{repo_folder}/radar_parlamentar/create_user.py" do
-#   action :delete
-# end
-#
-# #
-# # Importaçao de dados
-# #
-#
-# directory "#{script_folder}" do
-#   owner user
-#   group user
-#   mode '0775'
-#   action :create
-# end
-#
-# template "#{script_folder}/importar_dados.sh" do
-#   mode '777'
-#   owner user
-#   group user
-#   source "importar_dados.sh.erb"
-#   variables({
-#     :user => 'radar',
-#     :password => node['radar']['database_user_password'],
-#     :server_user => node['radar']['linux_user']
-#   })
-# end
-#
-# execute "importar_dados" do
-#   command "sh importar_dados.sh"
-#   cwd "#{script_folder}"
-#   user user
-#   group user
-#   action :run
-# end
-#
-# #
-# # Rotinas periódicas do Radar
-# #
-#
-# cron "cache-analises" do
-#   action :create
-#   minute '0'
-#   hour '1'
-#   shell '/bin/bash'
-#   user user
-#   command "{ $SHELL #{cron_folder}/clear-cache.sh && $SHELL #{cron_folder}/cache-analises.sh; } >> #{log_folder}/radar-cron.log 2>&1"
-# end
-#
-# cron "dump-db" do
-#   action :create
-#   minute '0'
-#   hour '4'
-#   weekday '1'
-#   shell '/bin/bash'
-#   user user
-#   command "#{cron_folder}/dump-radar.sh #{dump_file} >> #{log_folder}/radar-cron.log 2>&1"
-# end
+ template "#{home}/.profile" do
+   mode '0440'
+   owner user
+   group user
+   source "profile.erb"
+   variables({
+     :django_home => "#{repo_folder}/radar_parlamentar",
+     :script_folder => script_folder,
+     :venv_folder => venv_folder
+   })
+ end
+
+ #
+ # Código e configuração do Radar
+ #
+
+ directory "#{radar_folder}" do
+   owner user
+   group user
+   mode '0775'
+   action :create
+ end
+
+ python_virtualenv "#{venv_folder}" do
+   owner node['radar']['user']
+   # group user
+   action :create
+   options "--setuptools"
+ end
+
+ git "#{repo_folder}" do
+   repository "https://github.com/radar-parlamentar/radar.git"
+   reference "master"
+   user user
+   group user
+   action :sync
+ end
+
+ python_pip "" do
+   virtualenv "#{venv_folder}"
+   options "-r #{repo_folder}/radar_parlamentar/requirements.txt"
+ end
+
+ directory "#{cache_folder}" do
+   owner user
+   group user
+   mode '666'
+   action :create
+ end
+
+ template "#{repo_folder}/radar_parlamentar/settings/production.py" do
+   mode '0440'
+   owner user
+   group user
+   source "production.py.erb"
+   variables({
+     :dbname => 'radar',
+     :dbuser => 'radar',
+     :dbpassword => node['radar']['database_password'],
+     :cache_folder => cache_folder,
+     :log_file => log_file
+   })
+ end
+
+ directory log_folder do
+   owner user
+   group user
+   mode '0755'
+   action :create
+ end
+
+ file log_file do
+   owner user
+   group user
+   mode '0755'
+   action :create
+ end
+
+ execute "syncdb" do
+   command "#{venv_folder}/bin/python manage.py syncdb --noinput"
+   environment ({"DJANGO_SETTINGS_MODULE" => "settings.production"})
+   cwd "#{repo_folder}/radar_parlamentar"
+   user user
+   group user
+   action :run
+ end
+
+ execute "migrate" do
+   command "#{venv_folder}/bin/python manage.py migrate"
+   environment ({"DJANGO_SETTINGS_MODULE" => "settings.production"})
+   cwd "#{repo_folder}/radar_parlamentar"
+   user user
+   group user
+   action :run
+ end
+
+ #
+ # Uwsgi
+ #
+
+ template "#{radar_folder}/radar_uwsgi.ini" do
+   mode '0440'
+   owner user
+   group user
+   source "radar_uwsgi.ini.erb"
+   variables({
+     :user => user
+   })
+ end
+
+ template "#{radar_folder}/uwsgi_params" do
+   mode '0440'
+   owner user
+   group user
+   source "uwsgi_params.erb"
+ end
+
+ # python_pip "uwsgi" do
+ # end
+
+ directory uwsgi_log_folder do
+   owner user
+   group user
+   mode '0755'
+   action :create
+ end
+
+ template "/etc/init/uwsgi.conf" do
+   mode '777'
+   owner 'root'
+   group 'root'
+   source "uwsgi.conf.erb"
+   variables({
+     :uwsgi_log_file => uwsgi_log_file,
+     :radar_folder => radar_folder
+   })
+ end
+
+ service "uwsgi" do
+   provider Chef::Provider::Service::Upstart
+   action :reload
+ end
+
+ #
+ # Nginx
+ #
+
+ package "nginx" do
+   action :install
+ end
+
+ template "#{radar_folder}/radar_nginx.conf" do
+   mode '0440'
+   owner user
+   group user
+   source "radar_nginx.conf.erb"
+   variables({
+     :user => user,
+     :server_name => "localhost"
+   })
+ end
+
+ link "/etc/nginx/sites-enabled/radar_nginx.conf" do
+   to "#{home}/radar/radar_nginx.conf"
+ end
+
+ file "/etc/nginx/sites-enabled/default" do
+   action :delete
+ end
+
+ service "nginx" do
+   action :restart
+ end
+
+ #
+ # Celery
+ #
+
+ package "rabbitmq-server" do
+   action :install
+ end
+
+ template "/etc/default/celeryd" do
+   mode '0444'
+   owner 'root'
+   group 'root'
+   source "celeryd.conf.erb"
+   variables({
+     :repo_folder => repo_folder,
+     :venv_folder => venv_folder,
+     :user => user
+   })
+ end
+
+ template "/etc/init.d/celeryd" do
+   mode '0777'
+   owner 'root'
+   group 'root'
+   source "celeryd.erb"
+ end
+
+ service "celeryd" do
+   action :start
+ end
+
+ #
+ # Elastic Search
+ #
+
+ include_recipe "java"
+
+ package "unzip" do
+   action :install
+ end
+
+ remote_file "#{radar_folder}/elasticsearch-1.5.1.zip" do
+   source "http://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-1.5.1.zip"
+   action :create_if_missing
+   user user
+   group user
+ end
+
+ execute "unzip_elastic_search" do
+   command "unzip elasticsearch-1.5.1.zip"
+   cwd "#{radar_folder}"
+   user user
+   group user
+   action :run
+ end
+
+ service "elasticsearch" do
+   start_command "./#{radar_folder}/elasticsearch-1.5.1/bin/elasticsearch -d"
+   action :start
+ end
+
+ # Criar usuario para administrativo do Django (usado na importação dos dados via requisição web)
+
+ template "#{repo_folder}/radar_parlamentar/create_user.py" do
+   mode '777'
+   owner user
+   group user
+   source "create_user.py.erb"
+   variables({
+     :user => 'radar',
+     :password => node['radar']['database_user_password']
+   })
+ end
+
+ execute "create_user" do
+   command "#{venv_folder}/bin/python create_user.py"
+   environment ({"DJANGO_SETTINGS_MODULE" => "settings.production"})
+   cwd "#{repo_folder}/radar_parlamentar/"
+   user user
+   group user
+   action :run
+ end
+
+ file "#{repo_folder}/radar_parlamentar/create_user.py" do
+   action :delete
+ end
+
+ #
+ # Importaçao de dados
+ #
+
+ directory "#{script_folder}" do
+   owner user
+   group user
+   mode '0775'
+   action :create
+ end
+
+ template "#{script_folder}/importar_dados.sh" do
+   mode '777'
+   owner user
+   group user
+   source "importar_dados.sh.erb"
+   variables({
+     :user => 'radar',
+     :password => node['radar']['database_user_password'],
+     :server_user => node['radar']['linux_user']
+   })
+ end
+
+ execute "importar_dados" do
+   command "sh importar_dados.sh"
+   cwd "#{script_folder}"
+   user user
+   group user
+   action :run
+ end
+
+ #
+ # Rotinas periódicas do Radar
+ #
+
+ cron "cache-analises" do
+   action :create
+   minute '0'
+   hour '1'
+   shell '/bin/bash'
+   user user
+   command "{ $SHELL #{cron_folder}/clear-cache.sh && $SHELL #{cron_folder}/cache-analises.sh; } >> #{log_folder}/radar-cron.log 2>&1"
+ end
+
+ cron "dump-db" do
+   action :create
+   minute '0'
+   hour '4'
+   weekday '1'
+   shell '/bin/bash'
+   user user
+   command "#{cron_folder}/dump-radar.sh #{dump_file} >> #{log_folder}/radar-cron.log 2>&1"
+ end

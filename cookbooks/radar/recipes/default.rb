@@ -16,16 +16,30 @@ script_folder = "#{radar_folder}/scripts"
 cron_folder = "#{repo_folder}/radar_parlamentar/cron"
 dump_file = "#{repo_folder}/radar_parlamentar/static/db-dump/radar.sql"
 
+#
+# Adicionando repositórios externos necessários
+#
 
+bash 'add_repo_elasticsearch' do
+  code <<-EOH
+  wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+  echo "deb http://packages.elastic.co/elasticsearch/1.5/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch-1.5.list
+  EOH
+  not_if { ::File.exists?('/etc/apt/sources.list.d/elasticsearch-1.5.list') }
+end
+
+apt_repository 'java' do
+  uri          'ppa:webupd8team/java'
+  distribution node['lsb']['codename']
+end
 
 #
 # Instalando pacotes
 #
+
 package "libshadow-ruby1.8" do
   action :install
 end
-
-
 
 package "python-pip" do
   action :install
@@ -47,10 +61,6 @@ end
 #   action :install
 # end
 
-# package "postgresql-contrib" do
-#   action :install
-# end
-
 package "postgresql-9.1" do
   action :install
 end
@@ -66,6 +76,15 @@ end
 package "curl" do
   action :install
 end
+
+package "openjdk-7-jdk" do
+  action :install
+end
+
+package 'elasticsearch' do
+  action :install
+end
+
 
 #
 # Cria usuario radar
@@ -84,7 +103,6 @@ end
 #
 
 include_recipe "database::postgresql"
-include_recipe "apt::default"
 
 template "#{home}/.pgpass" do
   mode '0600'
@@ -181,7 +199,7 @@ end
 
 python_virtualenv "#{venv_folder}" do
   owner node['radar']['user']
-  # group user
+  group user
   action :create
   options "--setuptools"
 end
@@ -362,63 +380,10 @@ service "celeryd" do
 end
 
 
-
-# include_recipe "java"
-
-apt_repository 'java' do
-  uri          'ppa:webupd8team/java'
-  distribution node['lsb']['codename']
-end
-
-package "openjdk-7-jdk" do
-  action :install
-end
-#
-# Elastic Search
-#
-
-bash 'add_repo_elasticsearch' do
-  code <<-EOH
-  wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-  echo "deb http://packages.elastic.co/elasticsearch/1.5/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch-1.5.list
-  EOH
-  not_if do ::File.exists?('/etc/apt/sources.list.d/elasticsearch-1.5.list') end
-end
-
-package 'elasticsearch' do
-  action :install
-end
-
 service 'elasticsearch' do
-    action [:enable, :start]
+  supports :restart => true, :reload => true, :status => true
+  action [:enable, :start]
 end
-
-# package "unzip" do
-#   action :install
-# end
-
-# remote_file "#{radar_folder}/elasticsearch-1.5.1.zip" do
-#   source "http://download.elastic.co/elasticsearch/elasticsearch/elasticsearch-1.5.1.zip"
-#   action :create_if_missing
-#   user user
-#   group user
-# end
-
-
-
-
-# execute "unzip_elastic_search" do
-#   command "unzip elasticsearch-1.5.1.zip"
-#   cwd "#{radar_folder}"
-#   user user
-#   group user
-#   action :run
-# end
-
-# service "elasticsearch" do
-#   start_command "./#{radar_folder}/elasticsearch-1.5.1/bin/elasticsearch -d"
-#   action :start
-# end
 
 # Criar usuario para administrativo do Django (usado na importação dos dados via requisição web)
 

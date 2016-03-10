@@ -16,17 +16,31 @@ script_folder = "#{radar_folder}/scripts"
 cron_folder = "#{repo_folder}/radar_parlamentar/cron"
 dump_file = "#{repo_folder}/radar_parlamentar/static/db-dump/radar.sql"
 
+
+elasticsearch_user 'radar'
+
+
+elasticsearch_install 'elasticsearch' do
+  type :package
+  action :install
+end
+
+elasticsearch_configure 'elasticsearch' do
+  allocated_memory '256m'
+  configuration ({
+    'cluster.name' => 'mycluster',
+    'node.name' => 'node01'
+  })
+end
+
+
+elasticsearch_service 'elasticsearch' do
+  service_actions [:enable, :start]
+end
+
 #
 # Adicionando repositórios externos necessários
 #
-
-bash 'add_repo_elasticsearch' do
-  code <<-EOH
-  wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-  echo "deb http://packages.elastic.co/elasticsearch/1.5/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch-1.5.list
-  EOH
-  not_if { ::File.exists?('/etc/apt/sources.list.d/elasticsearch-1.5.list') }
-end
 
 apt_repository 'java' do
   uri          'ppa:webupd8team/java'
@@ -78,10 +92,6 @@ package "curl" do
 end
 
 package "openjdk-7-jdk" do
-  action :install
-end
-
-package 'elasticsearch' do
   action :install
 end
 
@@ -379,11 +389,6 @@ service "celeryd" do
   action :start
 end
 
-
-service 'elasticsearch' do
-  supports :restart => true, :reload => true, :status => true
-  action [:enable, :start]
-end
 
 # Criar usuario para administrativo do Django (usado na importação dos dados via requisição web)
 

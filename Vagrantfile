@@ -10,6 +10,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # options are documented and commented below. For a complete reference,
   # please see the online documentation at vagrantup.com.
 
+  if Vagrant.has_plugin?("vagrant-omnibus")
+    config.omnibus.chef_version = 'latest'
+  end
+
   # Every Vagrant virtual environment requires a box to build off of.
   config.vm.box = "hashicorp/precise32"
 
@@ -45,14 +49,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
   # Example for VirtualBox:
-  #
-  # config.vm.provider "virtualbox" do |vb|
-  #   # Don't boot with headless mode
-  #   vb.gui = true
-  #
-  #   # Use VBoxManage to customize the VM. For example to change memory:
-  #   vb.customize ["modifyvm", :id, "--memory", "1024"]
-  # end
+
+  # The path to the Berksfile to use with Vagrant Berkshelf
+  # config.berkshelf.berksfile_path = "Berksfile"
+
+  config.vm.provider "virtualbox" do |vb|
+    #   # Don't boot with headless mode
+    #   vb.gui = true
+    #
+    #   # Use VBoxManage to customize the VM. For example to change memory:
+    #   vb.customize ["modifyvm", :id, "--memory", "1024"]
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+  end
   #
   # View the documentation for the provider you're using for more
   # information on available options.
@@ -88,11 +97,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # some recipes and/or roles.
   #
   # config.omnibus.chef_version = "12.7.2"
+  config.berkshelf.enabled = true
+
   config.vm.provision "chef_solo" do |chef|
     # chef.cookbooks_path = "cookbooks"
     # chef.roles_path = "../my-recipes/roles"
     #  chef.data_bags_path = "../my-recipes/data_bags"
     chef.add_recipe "radar::default"
+    # chef.run_list = [
+    #   'recipe[radar::default]'
+    # ]
     #chef.add_role "web"
 
     # You may also specify custom JSON attributes:

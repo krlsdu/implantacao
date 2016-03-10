@@ -30,6 +30,7 @@ Para instalar o Radar em uma VM local usando o Vagrant, siga os passos abaixo:
 Instalar VirtualBox
 Instalar o Vagrant (https://www.vagrantup.com/downloads.html)
 Instalar o plugin vagrant-omnibus (vagrant plugin install vagrant-omnibus)
+Instalar o plugin vagrant-berkshelf (vagrant plugin install vagrant-berkshelf)
 
 Baixar imagem base:
 vagrant box add ubuntu12.04 http://files.vagrantup.com/precise32.box
